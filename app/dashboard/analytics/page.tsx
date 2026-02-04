@@ -1,6 +1,5 @@
 'use client'
 
-import { DashboardLayout } from '@/components/dashboard/layout'
 import { Card } from '@/components/ui/card'
 
 export default function AnalyticsPage() {
@@ -21,16 +20,15 @@ export default function AnalyticsPage() {
   ]
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
-          <p className="text-muted-foreground">Detailed performance metrics and trends</p>
-        </div>
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
+        <p className="text-muted-foreground">Detailed performance metrics and trends</p>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {metrics.map((metric, i) => (
-            <Card key={i} className="p-4">
+            <Card key={i} className="p-4 transition-all duration-200 hover:scale-105 hover:shadow-lg cursor-pointer">
               <p className="text-sm text-muted-foreground mb-1">{metric.title}</p>
               <div className="flex items-end justify-between">
                 <span className="text-2xl font-bold text-foreground">{metric.value}</span>
@@ -40,9 +38,9 @@ export default function AnalyticsPage() {
               </div>
             </Card>
           ))}
-        </div>
+      </div>
 
-        <Card className="p-6">
+      <Card className="p-6 transition-all duration-200 hover:shadow-md">
           <h2 className="text-lg font-semibold text-foreground mb-4">Request Volume & Errors Over Time</h2>
           <div className="space-y-4">
             <div className="overflow-x-auto">
@@ -73,7 +71,7 @@ export default function AnalyticsPage() {
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card className="p-6">
+          <Card className="p-6 transition-all duration-200 hover:shadow-md">
             <h2 className="text-lg font-semibold text-foreground mb-4">Top Endpoints by Volume</h2>
             <div className="space-y-3">
               {[
@@ -98,7 +96,7 @@ export default function AnalyticsPage() {
             </div>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-6 transition-all duration-200 hover:shadow-md">
             <h2 className="text-lg font-semibold text-foreground mb-4">Error Distribution</h2>
             <div className="space-y-3">
               {[
@@ -123,7 +121,6 @@ export default function AnalyticsPage() {
             </div>
           </Card>
         </div>
-      </div>
-    </DashboardLayout>
+    </div>
   )
 }

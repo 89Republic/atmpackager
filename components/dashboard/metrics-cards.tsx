@@ -49,7 +49,7 @@ export function MetricsCards() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {metrics.map((metric, index) => (
-        <Card key={index} className="border border-border bg-card p-6">
+        <Card key={index} className="border border-border bg-card p-6 transition-all duration-200 hover:scale-105 hover:shadow-lg cursor-pointer">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-sm font-medium text-muted-foreground mb-1">{metric.label}</p>

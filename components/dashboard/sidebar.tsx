@@ -12,11 +12,6 @@ const menuItems = [
     icon: '📊',
   },
   {
-    label: 'Services',
-    href: '/dashboard/services',
-    icon: '⚙️',
-  },
-  {
     label: 'Analytics',
     href: '/dashboard/analytics',
     icon: '📈',
@@ -33,9 +28,16 @@ const menuItems = [
   },
 ]
 
+const serviceTypes = [
+  { label: 'Standard', value: 'standard' },
+  { label: 'Client', value: 'client' },
+  { label: 'Mapping', value: 'mapping' },
+]
+
 export function Sidebar() {
   const router = useRouter()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [showServicesDropdown, setShowServicesDropdown] = useState(false)
 
   const handleLogout = () => {
     localStorage.removeItem('authenticated')
@@ -74,15 +76,43 @@ export function Sidebar() {
             </button>
           </Link>
         ))}
+        
+        {/* Services Dropdown */}
+        <div className="relative">
+          <button 
+            onClick={() => setShowServicesDropdown(!showServicesDropdown)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sidebar-foreground text-sm font-medium"
+          >
+            <span className="text-lg flex-shrink-0">🔧</span>
+            {!isCollapsed && (
+              <>
+                <span className="truncate flex-1 text-left">Services</span>
+                <span className={`transition-transform ${showServicesDropdown ? 'rotate-180' : ''}`}>▼</span>
+              </>
+            )}
+          </button>
+          
+          {/* Dropdown Menu */}
+          {showServicesDropdown && !isCollapsed && (
+            <div className="ml-4 mt-1 space-y-1">
+              {serviceTypes.map((service) => (
+                <Link key={service.value} href={`/dashboard/services/${service.value}`}>
+                  <button 
+                    onClick={() => setShowServicesDropdown(false)}
+                    className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sidebar-foreground text-sm"
+                  >
+                    <span className="text-sm flex-shrink-0">•</span>
+                    <span className="truncate">{service.label}</span>
+                  </button>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border space-y-2">
-        {!isCollapsed && (
-          <div className="px-4 py-2 bg-sidebar-accent rounded-lg">
-            <p className="text-xs font-semibold text-sidebar-accent-foreground">v0.1.0</p>
-          </div>
-        )}
+      <div className="p-4 border-t border-sidebar-border">
         <Button
           onClick={handleLogout}
           className="w-full bg-destructive hover:bg-destructive/90 text-destructive-foreground"

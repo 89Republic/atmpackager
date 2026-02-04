@@ -1,7 +1,7 @@
 'use client'
 
 import { MetricsCards } from '@/components/dashboard/metrics-cards'
-import { ServicesTable } from '@/components/dashboard/services-table'
+import { ClientsTable } from '@/components/dashboard/clients-table'
 
 export default function DashboardPage() {
   return (
@@ -12,7 +12,7 @@ export default function DashboardPage() {
       </div>
 
       <MetricsCards />
-      <ServicesTable />
+      <ClientsTable />
     </div>
   )
 }
