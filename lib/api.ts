@@ -38,4 +38,25 @@ export const clientsApi = {
 
     return result.data
   },
+  async getActive(): Promise<Client[]> {
+    const response = await fetch(`${API_BASE_URL}/clients/active`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const result: ApiResponse<Client[]> = await response.json()
+
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to fetch active clients')
+    }
+
+    return result.data
+  },
 }

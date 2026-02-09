@@ -39,7 +39,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem storageKey="theme">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem storageKey="theme" disableTransitionOnChange>
           {children}
         </ThemeProvider>
         <Analytics />

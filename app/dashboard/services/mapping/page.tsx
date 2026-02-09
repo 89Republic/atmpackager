@@ -4,106 +4,235 @@ import { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 
-interface MappingService {
-  id: string
-  routeName: string
-  sourceNetwork: string
-  targetNetwork: string
-  protocol: string
-  status: 'active' | 'inactive' | 'maintenance'
-  latency: string
-  created: string
+interface MappingClient {
+  clientId: number
+  clientName: string
+  isoVersion: string
+  encoding: string
+  bitmapType: string
+  active: string
+  createdAt: string
+  modifiedAt: string
+}
+
+interface IsoMeaning {
+  recId: number
+  fieldId: number
+  fieldLength: number
+  fieldName: string
+  className: string
+  createdAt: string
+  modifiedAt: string
+}
+
+interface MappingRecord {
+  mappingId: number
+  client: MappingClient | null
+  isoMeaning: IsoMeaning | null
+  clientFieldNo: number
+  direction: string
+  transformation: string
+  defaultValue: string
+  active: string
+  createdAt: string
+  modifiedAt: string
 }
 
 export default function MappingServicesPage() {
-  const [services, setServices] = useState<MappingService[]>([
-    { id: '1', routeName: 'Main-Branch-Network', sourceNetwork: '192.168.1.0/24', targetNetwork: '10.0.1.0/24', protocol: 'TCP/IP', status: 'active', latency: '12ms', created: '2024-01-15' },
-    { id: '2', routeName: 'ATM-Cluster-East', sourceNetwork: '192.168.2.0/24', targetNetwork: '10.0.2.0/24', protocol: 'TCP/IP', status: 'active', latency: '8ms', created: '2024-02-20' },
-    { id: '3', routeName: 'ATM-Cluster-West', sourceNetwork: '192.168.3.0/24', targetNetwork: '10.0.3.0/24', protocol: 'TCP/IP', status: 'maintenance', latency: '15ms', created: '2023-11-10' },
-    { id: '4', routeName: 'Mobile-Gateway', sourceNetwork: '172.16.0.0/16', targetNetwork: '10.1.0.0/16', protocol: 'HTTPS', status: 'active', latency: '25ms', created: '2023-09-05' },
-    { id: '5', routeName: 'Backup-Route', sourceNetwork: '192.168.10.0/24', targetNetwork: '10.0.10.0/24', protocol: 'TCP/IP', status: 'inactive', latency: 'N/A', created: '2024-03-01' },
-  ])
+  const [mappings, setMappings] = useState<MappingRecord[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [clientId, setClientId] = useState('')
 
   const [formData, setFormData] = useState({
-    routeName: '',
-    sourceNetwork: '',
-    targetNetwork: '',
-    protocol: 'TCP/IP',
-    status: 'active' as 'active' | 'inactive' | 'maintenance',
+    mappingId: '',
+    clientId: '',
+    clientName: '',
+    isoFieldId: '',
+    isoFieldName: '',
+    isoClassName: '',
+    clientFieldNo: '',
+    direction: '',
+    transformation: '',
+    defaultValue: '',
+    active: 'true',
   })
 
-  const filteredServices = services.filter(service => 
-    service.routeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    service.sourceNetwork.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    service.targetNetwork.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredMappings = mappings.filter(mapping =>
+    mapping.mappingId.toString().includes(searchTerm) ||
+    mapping.client?.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    mapping.isoMeaning?.fieldName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    mapping.isoMeaning?.className?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    mapping.direction?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const fetchMappings = async (id: string) => {
+    const trimmedId = id.trim()
+    const normalizedId = trimmedId.replace(/\D/g, '')
+    if (!normalizedId) {
+      setError('Please enter a client ID')
+      return
+    }
+    setIsLoading(true)
+    setError(null)
+    try {
+      setClientId(normalizedId)
+      const res = await fetch(`/api/v1/mappings/client/${normalizedId}`, { cache: 'no-store' })
+      const payload = await res.json()
+      if (!res.ok || payload?.success === false) {
+        const message = payload?.message || 'Failed to load mappings'
+        throw new Error(message)
+      }
+      const rows = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : []
+
+      setMappings(rows)
+      if (rows.length === 0) {
+        setError('No mappings found for this client ID')
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load mappings'
+      setError(message)
+      setMappings([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleCreateService = () => {
-    if (!formData.routeName || !formData.sourceNetwork || !formData.targetNetwork) {
+    if (!formData.mappingId || !formData.clientId || !formData.clientName || !formData.isoFieldId || !formData.isoFieldName) {
       alert('Please fill in all required fields')
       return
     }
 
-    const newService: MappingService = {
-      id: Date.now().toString(),
-      ...formData,
-      latency: formData.status === 'active' ? '0ms' : 'N/A',
-      created: new Date().toISOString().split('T')[0],
+    const now = new Date().toISOString()
+    const newMapping: MappingRecord = {
+      mappingId: Number(formData.mappingId),
+      client: {
+        clientId: Number(formData.clientId),
+        clientName: formData.clientName,
+        isoVersion: '',
+        encoding: '',
+        bitmapType: '',
+        active: formData.active,
+        createdAt: now,
+        modifiedAt: now,
+      },
+      isoMeaning: {
+        recId: 0,
+        fieldId: Number(formData.isoFieldId),
+        fieldLength: 0,
+        fieldName: formData.isoFieldName,
+        className: formData.isoClassName,
+        createdAt: now,
+        modifiedAt: now,
+      },
+      clientFieldNo: Number(formData.clientFieldNo || 0),
+      direction: formData.direction,
+      transformation: formData.transformation,
+      defaultValue: formData.defaultValue,
+      active: formData.active,
+      createdAt: now,
+      modifiedAt: now,
     }
 
-    setServices([...services, newService])
-    setFormData({ routeName: '', sourceNetwork: '', targetNetwork: '', protocol: 'TCP/IP', status: 'active' })
+    setMappings([newMapping, ...mappings])
+    setFormData({
+      mappingId: '',
+      clientId: '',
+      clientName: '',
+      isoFieldId: '',
+      isoFieldName: '',
+      isoClassName: '',
+      clientFieldNo: '',
+      direction: '',
+      transformation: '',
+      defaultValue: '',
+      active: 'true',
+    })
     setShowCreateForm(false)
   }
 
-  const handleEditService = (service: MappingService) => {
+  const handleEditService = (mapping: MappingRecord) => {
     setFormData({
-      routeName: service.routeName,
-      sourceNetwork: service.sourceNetwork,
-      targetNetwork: service.targetNetwork,
-      protocol: service.protocol,
-      status: service.status,
+      mappingId: String(mapping.mappingId),
+      clientId: String(mapping.client?.clientId ?? ''),
+      clientName: mapping.client?.clientName ?? '',
+      isoFieldId: String(mapping.isoMeaning?.fieldId ?? ''),
+      isoFieldName: mapping.isoMeaning?.fieldName ?? '',
+      isoClassName: mapping.isoMeaning?.className ?? '',
+      clientFieldNo: String(mapping.clientFieldNo ?? ''),
+      direction: mapping.direction ?? '',
+      transformation: mapping.transformation ?? '',
+      defaultValue: mapping.defaultValue ?? '',
+      active: mapping.active ?? 'true',
     })
-    setEditingId(service.id)
+    setEditingId(mapping.mappingId)
     setShowEditForm(true)
   }
 
   const handleUpdateService = () => {
-    if (!editingId) return
+    if (editingId === null) return
 
-    setServices(services.map(service =>
-      service.id === editingId
-        ? { ...service, ...formData }
-        : service
+    setMappings(mappings.map(mapping =>
+      mapping.mappingId === editingId
+        ? {
+            ...mapping,
+            mappingId: Number(formData.mappingId),
+            client: {
+              ...mapping.client,
+              clientId: Number(formData.clientId),
+              clientName: formData.clientName,
+              active: formData.active,
+              modifiedAt: new Date().toISOString(),
+            },
+            isoMeaning: {
+              ...mapping.isoMeaning,
+              fieldId: Number(formData.isoFieldId),
+              fieldName: formData.isoFieldName,
+              className: formData.isoClassName,
+              modifiedAt: new Date().toISOString(),
+            },
+            clientFieldNo: Number(formData.clientFieldNo || 0),
+            direction: formData.direction,
+            transformation: formData.transformation,
+            defaultValue: formData.defaultValue,
+            active: formData.active,
+            modifiedAt: new Date().toISOString(),
+          }
+        : mapping
     ))
 
-    setFormData({ routeName: '', sourceNetwork: '', targetNetwork: '', protocol: 'TCP/IP', status: 'active' })
+    setFormData({
+      mappingId: '',
+      clientId: '',
+      clientName: '',
+      isoFieldId: '',
+      isoFieldName: '',
+      isoClassName: '',
+      clientFieldNo: '',
+      direction: '',
+      transformation: '',
+      defaultValue: '',
+      active: 'true',
+    })
     setEditingId(null)
     setShowEditForm(false)
   }
 
-  const handleDeleteService = (id: string) => {
-    if (confirm('Are you sure you want to delete this mapping route?')) {
-      setServices(services.filter(service => service.id !== id))
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-500/20 text-green-400'
-      case 'inactive':
-        return 'bg-red-500/20 text-red-400'
-      case 'maintenance':
-        return 'bg-yellow-500/20 text-yellow-400'
-      default:
-        return 'bg-gray-500/20 text-gray-400'
+  const handleDeleteService = (mappingId: number) => {
+    if (confirm('Are you sure you want to delete this mapping?')) {
+      setMappings(mappings.filter(mapping => mapping.mappingId !== mappingId))
     }
   }
 
@@ -120,6 +249,12 @@ export default function MappingServicesPage() {
           </Button>
         </div>
 
+        {error && (
+          <Card className="p-4 border-destructive/30 bg-destructive/10 text-destructive text-sm">
+            {error}
+          </Card>
+        )}
+
         {/* Create/Edit Form */}
         {(showCreateForm || showEditForm) && (
           <Card className="p-6 bg-card/50 border-primary/30">
@@ -130,55 +265,108 @@ export default function MappingServicesPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-foreground">Route Name *</label>
+                  <label className="text-sm font-medium text-foreground">Mapping ID *</label>
                   <Input
-                    value={formData.routeName}
-                    onChange={(e) => setFormData({ ...formData, routeName: e.target.value })}
-                    placeholder="Main-Branch-Network"
+                    value={formData.mappingId}
+                    onChange={(e) => setFormData({ ...formData, mappingId: e.target.value })}
+                    placeholder="9007199254740991"
+                    className="mt-1"
+                    inputMode="numeric"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Client ID *</label>
+                  <Input
+                    value={formData.clientId}
+                    onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+                    placeholder="9007199254740991"
+                    className="mt-1"
+                    inputMode="numeric"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Client Name *</label>
+                  <Input
+                    value={formData.clientName}
+                    onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+                    placeholder="Client Name"
                     className="mt-1"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-foreground">Protocol</label>
+                  <label className="text-sm font-medium text-foreground">ISO Field ID *</label>
+                  <Input
+                    value={formData.isoFieldId}
+                    onChange={(e) => setFormData({ ...formData, isoFieldId: e.target.value })}
+                    placeholder="1073741824"
+                    className="mt-1"
+                    inputMode="numeric"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">ISO Field Name *</label>
+                  <Input
+                    value={formData.isoFieldName}
+                    onChange={(e) => setFormData({ ...formData, isoFieldName: e.target.value })}
+                    placeholder="Field Name"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">ISO Class Name</label>
+                  <Input
+                    value={formData.isoClassName}
+                    onChange={(e) => setFormData({ ...formData, isoClassName: e.target.value })}
+                    placeholder="ClassName"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Client Field No</label>
+                  <Input
+                    value={formData.clientFieldNo}
+                    onChange={(e) => setFormData({ ...formData, clientFieldNo: e.target.value })}
+                    placeholder="1073741824"
+                    className="mt-1"
+                    inputMode="numeric"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Direction</label>
+                  <Input
+                    value={formData.direction}
+                    onChange={(e) => setFormData({ ...formData, direction: e.target.value })}
+                    placeholder="INBOUND"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Transformation</label>
+                  <Input
+                    value={formData.transformation}
+                    onChange={(e) => setFormData({ ...formData, transformation: e.target.value })}
+                    placeholder="TRANSFORM"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Default Value</label>
+                  <Input
+                    value={formData.defaultValue}
+                    onChange={(e) => setFormData({ ...formData, defaultValue: e.target.value })}
+                    placeholder="Default"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Active</label>
                   <select
-                    value={formData.protocol}
-                    onChange={(e) => setFormData({ ...formData, protocol: e.target.value })}
+                    value={formData.active}
+                    onChange={(e) => setFormData({ ...formData, active: e.target.value })}
                     className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-foreground text-sm"
                   >
-                    <option value="TCP/IP">TCP/IP</option>
-                    <option value="HTTPS">HTTPS</option>
-                    <option value="VPN">VPN</option>
-                    <option value="MPLS">MPLS</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground">Source Network *</label>
-                  <Input
-                    value={formData.sourceNetwork}
-                    onChange={(e) => setFormData({ ...formData, sourceNetwork: e.target.value })}
-                    placeholder="192.168.1.0/24"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground">Target Network *</label>
-                  <Input
-                    value={formData.targetNetwork}
-                    onChange={(e) => setFormData({ ...formData, targetNetwork: e.target.value })}
-                    placeholder="10.0.1.0/24"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'maintenance' })}
-                    className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-foreground text-sm"
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="maintenance">Maintenance</option>
+                    <option value="true">True</option>
+                    <option value="false">False</option>
                   </select>
                 </div>
               </div>
@@ -194,7 +382,19 @@ export default function MappingServicesPage() {
                   onClick={() => {
                     setShowCreateForm(false)
                     setShowEditForm(false)
-                    setFormData({ routeName: '', sourceNetwork: '', targetNetwork: '', protocol: 'TCP/IP', status: 'active' })
+                    setFormData({
+                      mappingId: '',
+                      clientId: '',
+                      clientName: '',
+                      isoFieldId: '',
+                      isoFieldName: '',
+                      isoClassName: '',
+                      clientFieldNo: '',
+                      direction: '',
+                      transformation: '',
+                      defaultValue: '',
+                      active: 'true',
+                    })
                     setEditingId(null)
                   }}
                   variant="outline"
@@ -209,15 +409,34 @@ export default function MappingServicesPage() {
 
         {/* Search */}
         <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-1 gap-2">
+            <Input
+              placeholder="Client ID to load mappings..."
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value.replace(/\D/g, ''))}
+              className="flex-1"
+              inputMode="numeric"
+            />
+            <Button
+              onClick={() => fetchMappings(clientId)}
+              className="bg-primary hover:bg-primary/90"
+              disabled={isLoading || clientId.trim().length === 0}
+            >
+              {isLoading ? 'Loading...' : 'Load Mappings'}
+            </Button>
+          </div>
           <Input
-            placeholder="Search by route name or network..."
+            placeholder="Search by client, field, or direction..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-1"
           />
           <div className="text-sm text-muted-foreground py-2">
-            Total Routes: {filteredServices.length} / {services.length}
+            {isLoading ? 'Loading mappings...' : `Total Mappings: ${filteredMappings.length} / ${mappings.length}`}
           </div>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Calling: /api/v1/mappings/client/{clientId.trim() || '...'}
         </div>
 
         {/* Services Table */}
@@ -226,37 +445,73 @@ export default function MappingServicesPage() {
             <table className="w-full text-sm">
               <thead className="bg-card/50 border-b border-border">
                 <tr>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">Route Name</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">Source Network</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">Target Network</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">Protocol</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">Status</th>
-                  <th className="px-6 py-3 text-center font-semibold text-foreground">Latency</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">Created</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">mappingId</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">client</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.recId</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.fieldId</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.fieldLength</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.fieldName</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.className</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.createdAt</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.modifiedAt</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">clientFieldNo</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">direction</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">transformation</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">defaultValue</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">active</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">createdAt</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">modifiedAt</th>
                   <th className="px-6 py-3 text-center font-semibold text-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredServices.length > 0 ? (
-                  filteredServices.map((service) => (
-                    <tr key={service.id} className="border-b border-border hover:bg-card/50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-foreground">{service.routeName}</td>
-                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{service.sourceNetwork}</td>
-                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{service.targetNetwork}</td>
-                      <td className="px-6 py-4 text-muted-foreground text-xs">{service.protocol}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(service.status)}`}>
-                          {service.status.charAt(0).toUpperCase() + service.status.slice(1)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center font-medium text-foreground">{service.latency}</td>
-                      <td className="px-6 py-4 text-muted-foreground text-xs">{service.created}</td>
+                {isLoading ? (
+                  Array.from({ length: 6 }).map((_, index) => (
+                    <tr key={`skeleton-${index}`} className="border-b border-border">
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-16 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-16 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-16 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-48 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-56 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-24 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-24 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-12 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-24 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-24 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-8 w-20 bg-muted/60 mx-auto" /></td>
+                    </tr>
+                  ))
+                ) : filteredMappings.length > 0 ? (
+                  filteredMappings.map((mapping) => (
+                    <tr key={mapping.mappingId} className="border-b border-border hover:bg-card/50 transition-colors">
+                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.mappingId}</td>
+                      <td className="px-6 py-4 text-muted-foreground text-xs">{mapping.client ? JSON.stringify(mapping.client) : 'null'}</td>
+                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.isoMeaning?.recId ?? '-'}</td>
+                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.isoMeaning?.fieldId ?? '-'}</td>
+                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.isoMeaning?.fieldLength ?? '-'}</td>
+                      <td className="px-6 py-4 text-foreground">{mapping.isoMeaning?.fieldName ?? '-'}</td>
+                      <td className="px-6 py-4 text-foreground">{mapping.isoMeaning?.className ?? '-'}</td>
+                      <td className="px-6 py-4 text-muted-foreground text-xs">{mapping.isoMeaning?.createdAt ?? 'null'}</td>
+                      <td className="px-6 py-4 text-muted-foreground text-xs">{mapping.isoMeaning?.modifiedAt ?? 'null'}</td>
+                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.clientFieldNo}</td>
+                      <td className="px-6 py-4 text-foreground">{mapping.direction || '-'}</td>
+                      <td className="px-6 py-4 text-foreground">{mapping.transformation ?? 'null'}</td>
+                      <td className="px-6 py-4 text-foreground">{mapping.defaultValue ?? 'null'}</td>
+                      <td className="px-6 py-4 text-foreground">{mapping.active || '-'}</td>
+                      <td className="px-6 py-4 text-muted-foreground text-xs">{mapping.createdAt ?? 'null'}</td>
+                      <td className="px-6 py-4 text-muted-foreground text-xs">{mapping.modifiedAt ?? 'null'}</td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex gap-2 justify-center">
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleEditService(service)}
+                            onClick={() => handleEditService(mapping)}
                             className="bg-transparent text-xs"
                           >
                             Edit
@@ -264,7 +519,7 @@ export default function MappingServicesPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleDeleteService(service.id)}
+                            onClick={() => handleDeleteService(mapping.mappingId)}
                             className="bg-transparent text-xs text-destructive hover:bg-destructive/10"
                           >
                             Delete
@@ -275,8 +530,8 @@ export default function MappingServicesPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
-                      No mapping routes found
+                    <td colSpan={17} className="px-6 py-8 text-center text-muted-foreground">
+                      {isLoading ? 'Loading mappings...' : 'No mappings found'}
                     </td>
                   </tr>
                 )}
