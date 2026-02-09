@@ -1,6 +1,8 @@
+const API_BASE_URL = 'http://192.168.1.78:8080'
+
 export async function GET() {
   try {
-    const res = await fetch('http://192.168.1.53:8080/api/v1/clients', {
+    const res = await fetch(`${API_BASE_URL}/api/v1/clients`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

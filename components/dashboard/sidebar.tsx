@@ -68,7 +68,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {menuItems.map((item) => (
+        {menuItems.slice(0, 1).map((item) => (
           <Link key={item.href} href={item.href}>
             <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sidebar-foreground text-sm font-medium">
               <span className="text-lg flex-shrink-0">{item.icon}</span>
@@ -76,7 +76,7 @@ export function Sidebar() {
             </button>
           </Link>
         ))}
-        
+
         {/* Services Dropdown */}
         <div className="relative">
           <button 
@@ -96,19 +96,27 @@ export function Sidebar() {
           {showServicesDropdown && !isCollapsed && (
             <div className="ml-4 mt-1 space-y-1">
               {serviceTypes.map((service) => (
-                <Link key={service.value} href={`/dashboard/services/${service.value}`}>
-                  <button 
-                    onClick={() => setShowServicesDropdown(false)}
-                    className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sidebar-foreground text-sm"
-                  >
-                    <span className="text-sm flex-shrink-0">•</span>
-                    <span className="truncate">{service.label}</span>
-                  </button>
+                <Link
+                  key={service.value}
+                  href={`/dashboard/services/${service.value}`}
+                  className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sidebar-foreground text-sm"
+                >
+                  <span className="text-sm flex-shrink-0">•</span>
+                  <span className="truncate">{service.label}</span>
                 </Link>
               ))}
             </div>
           )}
         </div>
+
+        {menuItems.slice(1).map((item) => (
+          <Link key={item.href} href={item.href}>
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sidebar-foreground text-sm font-medium">
+              <span className="text-lg flex-shrink-0">{item.icon}</span>
+              {!isCollapsed && <span className="truncate">{item.label}</span>}
+            </button>
+          </Link>
+        ))}
       </nav>
 
       {/* Footer */}
