@@ -88,7 +88,12 @@ export const clientsApi = {
     return result.data
   },
   async update(payload: Client): Promise<Client> {
-    const response = await fetch(`${API_BASE_URL}/clients`, {
+    if (!payload.clientId) {
+      throw new Error('clientId is required to update a client')
+    }
+
+    
+    const response = await fetch(`${API_BASE_URL}/clients/${payload.clientId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

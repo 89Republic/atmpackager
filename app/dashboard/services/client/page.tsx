@@ -207,6 +207,7 @@ export default function ClientServicesPage() {
                     placeholder="2"
                     className="mt-1"
                     inputMode="numeric"
+                    disabled={showEditForm}
                   />
                 </div>
                 <div>
@@ -216,7 +217,6 @@ export default function ClientServicesPage() {
                     onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
                     placeholder="Client Name"
                     className="mt-1"
-                    disabled={showEditForm}
                   />
                 </div>
                 <div>
