@@ -2,6 +2,7 @@
 const API_BASE_URL = '/api/v1'
 
 export interface Client {
+  clientId?: number
   clientName: string
   active: string
   bitmapType: string
@@ -55,6 +56,60 @@ export const clientsApi = {
 
     if (!result.success) {
       throw new Error(result.message || 'Failed to fetch active clients')
+    }
+
+    return result.data
+  },
+  async create(payload: Client): Promise<Client> {
+    const response = await fetch(`${API_BASE_URL}/clients`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    let result: ApiResponse<Client> | null = null
+
+    try {
+      result = await response.json()
+    } catch {
+      result = null
+    }
+
+    if (!response.ok) {
+      const message = result?.message || `HTTP error! status: ${response.status}`
+      throw new Error(message)
+    }
+
+    if (!result?.success) {
+      throw new Error(result?.message || 'Failed to create client')
+    }
+
+    return result.data
+  },
+  async update(payload: Client): Promise<Client> {
+    const response = await fetch(`${API_BASE_URL}/clients`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+    let result: ApiResponse<Client> | null = null
+
+    try {
+      result = await response.json()
+    } catch {
+      result = null
+    }
+
+    if (!response.ok) {
+      const message = result?.message || `HTTP error! status: ${response.status}`
+      throw new Error(message)
+    }
+
+    if (!result?.success) {
+      throw new Error(result?.message || 'Failed to update client')
     }
 
     return result.data

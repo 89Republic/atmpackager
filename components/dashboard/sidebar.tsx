@@ -12,11 +12,6 @@ const menuItems = [
     icon: '📊',
   },
   {
-    label: 'Analytics',
-    href: '/dashboard/analytics',
-    icon: '📈',
-  },
-  {
     label: 'Logs',
     href: '/dashboard/logs',
     icon: '📝',
@@ -71,7 +66,7 @@ export function Sidebar() {
         {menuItems.slice(0, 1).map((item) => (
           <Link key={item.href} href={item.href}>
             <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sidebar-foreground text-sm font-medium">
-              <span className="text-lg flex-shrink-0">{item.icon}</span>
+              <span className="text-lg shrink-0">{item.icon}</span>
               {!isCollapsed && <span className="truncate">{item.label}</span>}
             </button>
           </Link>
@@ -83,7 +78,7 @@ export function Sidebar() {
             onClick={() => setShowServicesDropdown(!showServicesDropdown)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sidebar-foreground text-sm font-medium"
           >
-            <span className="text-lg flex-shrink-0">🔧</span>
+            <span className="text-lg shrink-0">🔧</span>
             {!isCollapsed && (
               <>
                 <span className="truncate flex-1 text-left">Services</span>
@@ -101,7 +96,7 @@ export function Sidebar() {
                   href={`/dashboard/services/${service.value}`}
                   className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sidebar-foreground text-sm"
                 >
-                  <span className="text-sm flex-shrink-0">•</span>
+                  <span className="text-sm shrink-0">•</span>
                   <span className="truncate">{service.label}</span>
                 </Link>
               ))}
@@ -112,7 +107,7 @@ export function Sidebar() {
         {menuItems.slice(1).map((item) => (
           <Link key={item.href} href={item.href}>
             <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sidebar-foreground text-sm font-medium">
-              <span className="text-lg flex-shrink-0">{item.icon}</span>
+              <span className="text-lg shrink-0">{item.icon}</span>
               {!isCollapsed && <span className="truncate">{item.label}</span>}
             </button>
           </Link>

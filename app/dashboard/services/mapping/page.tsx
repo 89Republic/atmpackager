@@ -435,10 +435,6 @@ export default function MappingServicesPage() {
             {isLoading ? 'Loading mappings...' : `Total Mappings: ${filteredMappings.length} / ${mappings.length}`}
           </div>
         </div>
-        <div className="text-xs text-muted-foreground">
-          Calling: /api/v1/mappings/client/{clientId.trim() || '...'}
-        </div>
-
         {/* Services Table */}
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">

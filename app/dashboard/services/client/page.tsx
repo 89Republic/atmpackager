@@ -7,12 +7,27 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { clientsApi, type Client } from '@/lib/api'
 
+type ClientForm = Client & { clientId: string }
+
 export default function ClientServicesPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [editingClientName, setEditingClientName] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [formData, setFormData] = useState<ClientForm>({
+    clientId: '',
+    clientName: '',
+    isoVersion: '',
+    encoding: '',
+    bitmapType: '',
+    active: 'Y',
+  })
 
   const fetchClients = async () => {
     try {
@@ -43,7 +58,8 @@ export default function ClientServicesPage() {
       client.encoding.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.isoVersion.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const isInactive = client.active?.toLowerCase() === 'n'
+    const normalizedActive = client.active?.toLowerCase()
+    const isInactive = normalizedActive === 'n' || normalizedActive === 'false'
     const matchesStatus =
       statusFilter === 'all' ||
       (statusFilter === 'active' && !isInactive) ||
@@ -55,9 +71,11 @@ export default function ClientServicesPage() {
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'y':
+      case 'true':
       case 'active':
         return 'bg-green-500/20 text-green-400'
       case 'n':
+      case 'false':
       case 'inactive':
         return 'bg-red-500/20 text-red-400'
       default:
@@ -68,11 +86,90 @@ export default function ClientServicesPage() {
   const getStatusLabel = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'y':
+      case 'true':
         return 'Active'
       case 'n':
+      case 'false':
         return 'Inactive'
       default:
         return status || '-'
+    }
+  }
+
+  const handleCreateClient = async () => {
+    if (!formData.clientId || !/^[0-9]+$/.test(formData.clientId)) {
+      alert('Please provide a valid client ID')
+      return
+    }
+    if (!formData.clientName || !formData.isoVersion || !formData.encoding || !formData.bitmapType) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      setError(null)
+      const payload: Client = {
+        clientId: Number(formData.clientId),
+        clientName: formData.clientName.trim(),
+        isoVersion: formData.isoVersion.trim(),
+        encoding: formData.encoding.trim(),
+        bitmapType: formData.bitmapType.trim(),
+        active: formData.active?.toLowerCase() === 'n' || formData.active?.toLowerCase() === 'false' ? 'N' : 'Y',
+      }
+      await clientsApi.create(payload)
+      setShowCreateForm(false)
+      setFormData({ clientId: '', clientName: '', isoVersion: '', encoding: '', bitmapType: '', active: 'Y' })
+      await fetchClients()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create client')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleEditClient = (client: Client) => {
+    const normalizedActive = client.active?.toLowerCase()
+    setFormData({
+      clientId: client.clientId ? String(client.clientId) : '',
+      clientName: client.clientName,
+      isoVersion: client.isoVersion,
+      encoding: client.encoding,
+      bitmapType: client.bitmapType,
+      active: normalizedActive === 'n' || normalizedActive === 'false' ? 'N' : 'Y',
+    })
+    setEditingClientName(client.clientName)
+    setShowEditForm(true)
+    setShowCreateForm(false)
+  }
+
+  const handleUpdateClient = async () => {
+    if (!editingClientName) return
+    if (!formData.clientId || !/^[0-9]+$/.test(formData.clientId)) {
+      alert('Please provide a valid client ID')
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      setError(null)
+      const payload: Client = {
+        clientId: Number(formData.clientId),
+        clientName: formData.clientName.trim(),
+        isoVersion: formData.isoVersion.trim(),
+        encoding: formData.encoding.trim(),
+        bitmapType: formData.bitmapType.trim(),
+        active: formData.active?.toLowerCase() === 'n' || formData.active?.toLowerCase() === 'false' ? 'N' : 'Y',
+      }
+      await clientsApi.update(payload)
+      setShowEditForm(false)
+      setEditingClientName(null)
+      setFormData({ clientId: '', clientName: '', isoVersion: '', encoding: '', bitmapType: '', active: 'Y' })
+      await fetchClients()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update client')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -84,10 +181,108 @@ export default function ClientServicesPage() {
             <h1 className="text-3xl font-bold text-foreground">Client Services</h1>
             <p className="text-muted-foreground">Manage client-specific ATM service packages</p>
           </div>
-          <Button onClick={fetchClients} variant="outline" className="bg-transparent">
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => { setShowCreateForm(true); setShowEditForm(false) }} className="bg-primary hover:bg-primary/90">
+              + New Client
+            </Button>
+            <Button onClick={fetchClients} variant="outline" className="bg-transparent">
+              Refresh
+            </Button>
+          </div>
         </div>
+
+        {(showCreateForm || showEditForm) && (
+          <Card className="p-6 bg-card/50 border-primary/30">
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-foreground">
+                {showEditForm ? 'Edit Client' : 'Create New Client'}
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground">Client ID *</label>
+                  <Input
+                    value={formData.clientId}
+                    onChange={(e) => setFormData({ ...formData, clientId: e.target.value.replace(/\D/g, '') })}
+                    placeholder="2"
+                    className="mt-1"
+                    inputMode="numeric"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Client Name *</label>
+                  <Input
+                    value={formData.clientName}
+                    onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
+                    placeholder="Client Name"
+                    className="mt-1"
+                    disabled={showEditForm}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">ISO Version *</label>
+                  <Input
+                    value={formData.isoVersion}
+                    onChange={(e) => setFormData({ ...formData, isoVersion: e.target.value })}
+                    placeholder="1987/1993/2003"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Encoding *</label>
+                  <Input
+                    value={formData.encoding}
+                    onChange={(e) => setFormData({ ...formData, encoding: e.target.value })}
+                    placeholder="ASCII / EBCDIC"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Bitmap Type *</label>
+                  <Input
+                    value={formData.bitmapType}
+                    onChange={(e) => setFormData({ ...formData, bitmapType: e.target.value })}
+                    placeholder="Primary / Secondary"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground">Status</label>
+                  <select
+                    value={formData.active}
+                    onChange={(e) => setFormData({ ...formData, active: e.target.value })}
+                    className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-foreground text-sm"
+                  >
+                    <option value="Y">Active</option>
+                    <option value="N">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={showEditForm ? handleUpdateClient : handleCreateClient}
+                  className="bg-primary hover:bg-primary/90"
+                  disabled={isSubmitting}
+                >
+                  {showEditForm ? 'Update Client' : 'Create Client'}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowCreateForm(false)
+                    setShowEditForm(false)
+                    setEditingClientName(null)
+                    setFormData({ clientId: '', clientName: '', isoVersion: '', encoding: '', bitmapType: '', active: 'Y' })
+                  }}
+                  variant="outline"
+                  className="bg-transparent"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Search */}
         <div className="flex flex-col md:flex-row gap-4">
@@ -128,6 +323,7 @@ export default function ClientServicesPage() {
                   <th className="px-6 py-3 text-left font-semibold text-foreground">Encoding</th>
                   <th className="px-6 py-3 text-left font-semibold text-foreground">ISO Version</th>
                   <th className="px-6 py-3 text-left font-semibold text-foreground">Status</th>
+                  <th className="px-6 py-3 text-center font-semibold text-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -153,11 +349,21 @@ export default function ClientServicesPage() {
                           {getStatusLabel(client.active)}
                         </span>
                       </td>
+                      <td className="px-6 py-4 text-center">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditClient(client)}
+                          className="bg-transparent text-xs"
+                        >
+                          Edit
+                        </Button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
                       No clients found
                     </td>
                   </tr>
