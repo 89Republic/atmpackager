@@ -1,7 +1,7 @@
 'use client'
 
 import { MetricsCards } from '@/components/dashboard/metrics-cards'
-import { ClientsTable } from '@/components/dashboard/clients-table'
+import ClientsTable from '@/components/dashboard/clients-table'
 
 export default function DashboardPage() {
   return (
