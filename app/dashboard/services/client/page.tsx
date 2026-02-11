@@ -400,7 +400,7 @@ export default function ClientServicesPage() {
                   <Input
                     value={formData.clientId}
                     onChange={(e) => setFormData({ ...formData, clientId: e.target.value.replace(/\D/g, '') })}
-                    placeholder="2"
+                    placeholder="Client ID (numeric)"
                     className="mt-1"
                     inputMode="numeric"
                     disabled={showEditForm}
@@ -411,7 +411,7 @@ export default function ClientServicesPage() {
                   <Input
                     value={formData.clientName}
                     onChange={(e) => setFormData({ ...formData, clientName: e.target.value })}
-                    placeholder="Client Name"
+                    placeholder="Client name"
                     className="mt-1"
                   />
                 </div>
@@ -420,7 +420,7 @@ export default function ClientServicesPage() {
                   <Input
                     value={formData.isoVersion}
                     onChange={(e) => setFormData({ ...formData, isoVersion: e.target.value })}
-                    placeholder="1987/1993/2003"
+                    placeholder="ISO version (e.g., 1987/1993/2003)"
                     className="mt-1"
                   />
                 </div>
@@ -429,7 +429,7 @@ export default function ClientServicesPage() {
                   <Input
                     value={formData.encoding}
                     onChange={(e) => setFormData({ ...formData, encoding: e.target.value })}
-                    placeholder="ASCII / EBCDIC"
+                    placeholder="Encoding (e.g., ASCII/EBCDIC)"
                     className="mt-1"
                   />
                 </div>
@@ -438,7 +438,7 @@ export default function ClientServicesPage() {
                   <Input
                     value={formData.bitmapType}
                     onChange={(e) => setFormData({ ...formData, bitmapType: e.target.value })}
-                    placeholder="Primary / Secondary"
+                    placeholder="Bitmap type (e.g., Primary/Secondary)"
                     className="mt-1"
                   />
                 </div>

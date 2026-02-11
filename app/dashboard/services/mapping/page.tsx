@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -86,7 +86,7 @@ export default function MappingServicesPage() {
   }
 
   // Reset pagination when search term or items per page changes
-  useState(() => {
+  useEffect(() => {
     resetToFirstPage()
   }, [searchTerm, itemsPerPage])
 
@@ -490,12 +490,16 @@ export default function MappingServicesPage() {
                     </div>
                     <div>
                       <label className="text-sm font-medium text-foreground">Direction</label>
-                      <Input
+                      <select
                         value={formData.direction}
                         onChange={(e) => setFormData({ ...formData, direction: e.target.value })}
-                        placeholder="Inbound"
-                        className="mt-1"
-                      />
+                        className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-foreground text-sm"
+                      >
+                        <option value="">Select direction</option>
+                        <option value="Inbound">Inbound</option>
+                        <option value="Outbound">Outbound</option>
+                        <option value="Both">Both</option>
+                      </select>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-foreground">Transformation</label>
@@ -534,7 +538,7 @@ export default function MappingServicesPage() {
                       <Input
                         value={formData.clientId}
                         onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
-                        placeholder="11"
+                        placeholder="Client ID (numeric)"
                         className="mt-1"
                         inputMode="numeric"
                       />
@@ -544,7 +548,7 @@ export default function MappingServicesPage() {
                       <Input
                         value={formData.isoFieldId}
                         onChange={(e) => setFormData({ ...formData, isoFieldId: e.target.value })}
-                        placeholder="1"
+                        placeholder="ISO record ID (numeric)"
                         className="mt-1"
                         inputMode="numeric"
                       />
@@ -554,26 +558,30 @@ export default function MappingServicesPage() {
                       <Input
                         value={formData.clientFieldNo}
                         onChange={(e) => setFormData({ ...formData, clientFieldNo: e.target.value })}
-                        placeholder="39"
+                        placeholder="Client field number (numeric)"
                         className="mt-1"
                         inputMode="numeric"
                       />
                     </div>
                     <div>
                       <label className="text-sm font-medium text-foreground">Direction *</label>
-                      <Input
+                      <select
                         value={formData.direction}
                         onChange={(e) => setFormData({ ...formData, direction: e.target.value })}
-                        placeholder="Inbound"
-                        className="mt-1"
-                      />
+                        className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-foreground text-sm"
+                      >
+                        <option value="">Select direction</option>
+                        <option value="Inbound">Inbound</option>
+                        <option value="Outbound">Outbound</option>
+                        <option value="Both">Both</option>
+                      </select>
                     </div>
                     <div>
                       <label className="text-sm font-medium text-foreground">Transformation</label>
                       <Input
                         value={formData.transformation}
                         onChange={(e) => setFormData({ ...formData, transformation: e.target.value })}
-                        placeholder="padding zero"
+                        placeholder="Transformation rule (optional)"
                         className="mt-1"
                       />
                     </div>
@@ -582,7 +590,7 @@ export default function MappingServicesPage() {
                       <Input
                         value={formData.defaultValue}
                         onChange={(e) => setFormData({ ...formData, defaultValue: e.target.value })}
-                        placeholder="0"
+                        placeholder="Default value (optional)"
                         className="mt-1"
                       />
                     </div>
@@ -595,7 +603,7 @@ export default function MappingServicesPage() {
                   onClick={showEditForm ? handleUpdateService : handleCreateService}
                   className="bg-primary hover:bg-primary/90"
                 >
-                  {showEditForm ? 'Update Route' : 'Create Route'}
+                  {showEditForm ? 'Update Route' : 'Create Mapping'}
                 </Button>
                 <Button
                   onClick={() => {
