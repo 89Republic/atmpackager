@@ -17,38 +17,24 @@ import {
 } from '@/components/ui/pagination'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-interface MappingClient {
-  clientId: number
-  clientName: string
-  isoVersion: string
-  encoding: string
-  bitmapType: string
-  active: string
-  createdAt: string
-  modifiedAt: string
+interface IsoStandardDefinition {
+  isoFieldNo: number
+  length: number
+  isoFieldName: string
 }
 
-interface IsoMeaning {
-  recId: number
-  fieldId: number
-  fieldLength: number
-  fieldName: string
-  className: string
-  createdAt: string
-  modifiedAt: string
+interface ClientDefinition {
+  defaultValue: string | null
+  clientFieldNo: number
+  active: string
+  transformation: string | null
+  direction: string
 }
 
 interface MappingRecord {
-  mappingId: number
-  client: MappingClient | null
-  isoMeaning: IsoMeaning | null
-  clientFieldNo: number
-  direction: string
-  transformation: string
-  defaultValue: string
-  active: string
-  createdAt: string
-  modifiedAt: string
+  mappingId?: number
+  isoStandardDefinition: IsoStandardDefinition | null
+  clientDefinition: ClientDefinition | null
 }
 
 export default function MappingServicesPage() {
@@ -81,11 +67,10 @@ export default function MappingServicesPage() {
   })
 
   const filteredMappings = mappings.filter(mapping =>
-    mapping.mappingId.toString().includes(searchTerm) ||
-    mapping.client?.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    mapping.isoMeaning?.fieldName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    mapping.isoMeaning?.className?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    mapping.direction?.toLowerCase().includes(searchTerm.toLowerCase())
+    (mapping.mappingId ?? '').toString().includes(searchTerm) ||
+    mapping.isoStandardDefinition?.isoFieldName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (mapping.isoStandardDefinition?.isoFieldNo ?? '').toString().includes(searchTerm) ||
+    mapping.clientDefinition?.direction?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   // Pagination calculations
@@ -195,7 +180,12 @@ export default function MappingServicesPage() {
     const trimmedId = id.trim()
     const normalizedId = trimmedId.replace(/\D/g, '')
     if (!normalizedId) {
-      setError('Please enter a client ID')
+      setError(null)
+      void Swal.fire({
+        icon: 'warning',
+        title: 'Client ID required',
+        text: 'Please enter a client ID before searching.',
+      })
       return
     }
     setIsLoading(true)
@@ -208,20 +198,33 @@ export default function MappingServicesPage() {
         const message = payload?.message || 'Failed to load mappings'
         throw new Error(message)
       }
-      const rows = Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload)
-          ? payload
-          : []
+      const rows = Array.isArray(payload?.data?.mappings)
+        ? payload.data.mappings
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload)
+            ? payload
+            : []
 
       setMappings(rows)
       if (rows.length === 0) {
-        setError('No mappings found for this client ID')
+        const message = 'No mappings found for this client ID'
+        setError(null)
+        void Swal.fire({
+          icon: 'info',
+          title: 'Client not found',
+          text: message,
+        })
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load mappings'
-      setError(message)
+      setError(null)
       setMappings([])
+      void Swal.fire({
+        icon: 'error',
+        title: 'Lookup failed',
+        text: message,
+      })
     } finally {
       setIsLoading(false)
     }
@@ -286,18 +289,19 @@ export default function MappingServicesPage() {
   }
 
   const handleEditService = (mapping: MappingRecord) => {
+    if (mapping.mappingId == null) return
     setFormData({
       mappingId: String(mapping.mappingId),
-      clientId: String(mapping.client?.clientId ?? ''),
-      clientName: mapping.client?.clientName ?? '',
-      isoFieldId: String(mapping.isoMeaning?.fieldId ?? ''),
-      isoFieldName: mapping.isoMeaning?.fieldName ?? '',
-      isoClassName: mapping.isoMeaning?.className ?? '',
-      clientFieldNo: String(mapping.clientFieldNo ?? ''),
-      direction: mapping.direction ?? '',
-      transformation: mapping.transformation ?? '',
-      defaultValue: mapping.defaultValue ?? '',
-      active: mapping.active ?? 'true',
+      clientId: '',
+      clientName: '',
+      isoFieldId: String(mapping.isoStandardDefinition?.isoFieldNo ?? ''),
+      isoFieldName: mapping.isoStandardDefinition?.isoFieldName ?? '',
+      isoClassName: '',
+      clientFieldNo: String(mapping.clientDefinition?.clientFieldNo ?? ''),
+      direction: mapping.clientDefinition?.direction ?? '',
+      transformation: mapping.clientDefinition?.transformation ?? '',
+      defaultValue: mapping.clientDefinition?.defaultValue ?? '',
+      active: mapping.clientDefinition?.active ?? 'true',
     })
     setEditingId(mapping.mappingId)
     setShowEditForm(true)
@@ -311,26 +315,18 @@ export default function MappingServicesPage() {
         ? {
             ...mapping,
             mappingId: Number(formData.mappingId),
-            client: {
-              ...mapping.client,
-              clientId: Number(formData.clientId),
-              clientName: formData.clientName,
+            isoStandardDefinition: {
+              isoFieldNo: Number(formData.isoFieldId || 0),
+              length: mapping.isoStandardDefinition?.length ?? 0,
+              isoFieldName: formData.isoFieldName,
+            },
+            clientDefinition: {
+              clientFieldNo: Number(formData.clientFieldNo || 0),
+              direction: formData.direction,
+              transformation: formData.transformation || null,
+              defaultValue: formData.defaultValue || null,
               active: formData.active,
-              modifiedAt: new Date().toISOString(),
             },
-            isoMeaning: {
-              ...mapping.isoMeaning,
-              fieldId: Number(formData.isoFieldId),
-              fieldName: formData.isoFieldName,
-              className: formData.isoClassName,
-              modifiedAt: new Date().toISOString(),
-            },
-            clientFieldNo: Number(formData.clientFieldNo || 0),
-            direction: formData.direction,
-            transformation: formData.transformation,
-            defaultValue: formData.defaultValue,
-            active: formData.active,
-            modifiedAt: new Date().toISOString(),
           }
         : mapping
     ))
@@ -689,21 +685,14 @@ export default function MappingServicesPage() {
               <thead className="bg-card/50 border-b border-border">
                 <tr>
                   <th className="px-6 py-3 text-left font-semibold text-foreground">mappingId</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">client</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.recId</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.fieldId</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.fieldLength</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.fieldName</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.className</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.createdAt</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoMeaning.modifiedAt</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">clientFieldNo</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">direction</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">transformation</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoFieldNo</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">length</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">isoFieldName</th>
                   <th className="px-6 py-3 text-left font-semibold text-foreground">defaultValue</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">clientFieldNo</th>
                   <th className="px-6 py-3 text-left font-semibold text-foreground">active</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">createdAt</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">modifiedAt</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">transformation</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">direction</th>
                   <th className="px-6 py-3 text-center font-semibold text-foreground">Actions</th>
                 </tr>
               </thead>
@@ -712,49 +701,46 @@ export default function MappingServicesPage() {
                   Array.from({ length: 6 }).map((_, index) => (
                     <tr key={`skeleton-${index}`} className="border-b border-border">
                       <td className="px-6 py-4"><Skeleton className="h-4 w-16 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-16 bg-muted/60" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-4 w-16 bg-muted/60" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-4 w-16 bg-muted/60" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-4 w-48 bg-muted/60" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-4 w-56 bg-muted/60" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-4 w-24 bg-muted/60" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-4 w-24 bg-muted/60" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-4 w-12 bg-muted/60" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-4 w-24 bg-muted/60" /></td>
-                      <td className="px-6 py-4"><Skeleton className="h-4 w-24 bg-muted/60" /></td>
+                      <td className="px-6 py-4"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
                       <td className="px-6 py-4"><Skeleton className="h-8 w-20 bg-muted/60 mx-auto" /></td>
                     </tr>
                   ))
                 ) : currentMappings.length > 0 ? (
-                  currentMappings.map((mapping) => (
-                    <tr key={mapping.mappingId} className="border-b border-border hover:bg-card/50 transition-colors">
-                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.mappingId}</td>
-                      <td className="px-6 py-4 text-muted-foreground text-xs">{mapping.client ? JSON.stringify(mapping.client) : 'null'}</td>
-                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.isoMeaning?.recId ?? '-'}</td>
-                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.isoMeaning?.fieldId ?? '-'}</td>
-                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.isoMeaning?.fieldLength ?? '-'}</td>
-                      <td className="px-6 py-4 text-foreground">{mapping.isoMeaning?.fieldName ?? '-'}</td>
-                      <td className="px-6 py-4 text-foreground">{mapping.isoMeaning?.className ?? '-'}</td>
-                      <td className="px-6 py-4 text-muted-foreground text-xs">{mapping.isoMeaning?.createdAt ?? 'null'}</td>
-                      <td className="px-6 py-4 text-muted-foreground text-xs">{mapping.isoMeaning?.modifiedAt ?? 'null'}</td>
-                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.clientFieldNo}</td>
-                      <td className="px-6 py-4 text-foreground">{mapping.direction || '-'}</td>
-                      <td className="px-6 py-4 text-foreground">{mapping.transformation ?? 'null'}</td>
-                      <td className="px-6 py-4 text-foreground">{mapping.defaultValue ?? 'null'}</td>
-                      <td className="px-6 py-4 text-foreground">{mapping.active || '-'}</td>
-                      <td className="px-6 py-4 text-muted-foreground text-xs">{mapping.createdAt ?? 'null'}</td>
-                      <td className="px-6 py-4 text-muted-foreground text-xs">{mapping.modifiedAt ?? 'null'}</td>
+                  currentMappings.map((mapping, index) => (
+                    <tr key={mapping.mappingId ?? `mapping-${index}`} className="border-b border-border hover:bg-card/50 transition-colors">
+                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.mappingId ?? '-'}</td>
+                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.isoStandardDefinition?.isoFieldNo ?? '-'}</td>
+                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.isoStandardDefinition?.length ?? '-'}</td>
+                      <td className="px-6 py-4 text-foreground">{mapping.isoStandardDefinition?.isoFieldName ?? '-'}</td>
+                      <td className="px-6 py-4 text-foreground">{mapping.clientDefinition?.defaultValue ?? 'null'}</td>
+                      <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{mapping.clientDefinition?.clientFieldNo ?? '-'}</td>
+                      <td className="px-6 py-4 text-foreground">{mapping.clientDefinition?.active ?? '-'}</td>
+                      <td className="px-6 py-4 text-foreground">{mapping.clientDefinition?.transformation ?? 'null'}</td>
+                      <td className="px-6 py-4 text-foreground">{mapping.clientDefinition?.direction ?? '-'}</td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex gap-2 justify-center">
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleEditService(mapping)}
+                            onClick={() => {
+                              if (mapping.mappingId == null) {
+                                void Swal.fire({
+                                  icon: 'error',
+                                  title: 'Missing mappingId',
+                                  text: 'This row has no mappingId, so it cannot be edited.',
+                                })
+                                return
+                              }
+                              handleEditService(mapping)
+                            }}
                             className="bg-transparent text-xs"
                           >
                             Edit
@@ -762,7 +748,17 @@ export default function MappingServicesPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleDeleteService(mapping.mappingId)}
+                            onClick={() => {
+                              if (mapping.mappingId == null) {
+                                void Swal.fire({
+                                  icon: 'error',
+                                  title: 'Missing mappingId',
+                                  text: 'This row has no mappingId, so it cannot be deleted.',
+                                })
+                                return
+                              }
+                              handleDeleteService(mapping.mappingId)
+                            }}
                             className="bg-transparent text-xs text-destructive hover:bg-destructive/10"
                           >
                             Delete
@@ -773,7 +769,7 @@ export default function MappingServicesPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={17} className="px-6 py-8 text-center text-muted-foreground">
+                    <td colSpan={10} className="px-6 py-8 text-center text-muted-foreground">
                       {isLoading ? 'Loading mappings...' : (searchTerm ? 'No matching mappings found' : 'No mappings found')}
                     </td>
                   </tr>
