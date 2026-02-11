@@ -83,12 +83,18 @@ export default function ClientServicesPage() {
     return matchesSearch && matchesStatus
   })
 
+  const sortedClients = [...filteredClients].sort((a, b) => {
+    const aId = a.clientId ?? Number.POSITIVE_INFINITY
+    const bId = b.clientId ?? Number.POSITIVE_INFINITY
+    return aId - bId
+  })
+
   // Pagination calculations
-  const totalItems = filteredClients.length
+  const totalItems = sortedClients.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentClients = filteredClients.slice(startIndex, endIndex)
+  const currentClients = sortedClients.slice(startIndex, endIndex)
 
   // Reset to first page when search or filter changes
   useEffect(() => {

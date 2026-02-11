@@ -75,9 +75,10 @@ export default function MappingServicesPage() {
 
   // Pagination calculations
   const totalItems = filteredMappings.length
-  const totalPages = Math.ceil(totalItems / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
+  const effectiveItemsPerPage = itemsPerPage === 0 ? Math.max(totalItems, 1) : itemsPerPage
+  const totalPages = Math.ceil(totalItems / effectiveItemsPerPage)
+  const startIndex = (currentPage - 1) * effectiveItemsPerPage
+  const endIndex = startIndex + effectiveItemsPerPage
   const currentMappings = filteredMappings.slice(startIndex, endIndex)
 
   // Reset to first page when search changes
@@ -96,7 +97,7 @@ export default function MappingServicesPage() {
 
   const renderPageNumbers = () => {
     const pages = []
-    const maxVisiblePages = 5
+    const maxVisiblePages = 9
     
     if (totalPages <= maxVisiblePages) {
       for (let i = 1; i <= totalPages; i++) {
@@ -672,7 +673,10 @@ export default function MappingServicesPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Per page:</span>
-              <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+              <Select
+                value={itemsPerPage === 0 ? 'all' : itemsPerPage.toString()}
+                onValueChange={(value) => setItemsPerPage(value === 'all' ? 0 : Number(value))}
+              >
                 <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
@@ -681,6 +685,7 @@ export default function MappingServicesPage() {
                   <SelectItem value="10">10</SelectItem>
                   <SelectItem value="20">20</SelectItem>
                   <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                 </SelectContent>
               </Select>
             </div>
