@@ -5,6 +5,17 @@ import { useParams } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import Swal from 'sweetalert2'
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationPrevious, 
+  PaginationNext,
+  PaginationEllipsis 
+} from '@/components/ui/pagination'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface Client {
   id: string
@@ -34,6 +45,10 @@ export default function ServiceTypePage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive' | 'pending'>('all')
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -49,9 +64,106 @@ export default function ServiceTypePage() {
     return matchesSearch && matchesStatus
   })
 
-  const handleCreateClient = () => {
+  // Pagination calculations
+  const totalItems = filteredClients.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentClients = filteredClients.slice(startIndex, endIndex)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const renderPageNumbers = () => {
+    const pages = []
+    const maxVisiblePages = 5
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(
+          <PaginationItem key={i}>
+            <PaginationLink
+              isActive={currentPage === i}
+              onClick={() => handlePageChange(i)}
+              className="cursor-pointer"
+            >
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        )
+      }
+    } else {
+      const startPage = Math.max(1, currentPage - 2)
+      const endPage = Math.min(totalPages, currentPage + 2)
+
+      if (startPage > 1) {
+        pages.push(
+          <PaginationItem key={1}>
+            <PaginationLink
+              isActive={false}
+              onClick={() => handlePageChange(1)}
+              className="cursor-pointer"
+            >
+              1
+            </PaginationLink>
+          </PaginationItem>
+        )
+        if (startPage > 2) {
+          pages.push(
+            <PaginationItem key="ellipsis-start">
+              <PaginationEllipsis />
+            </PaginationItem>
+          )
+        }
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(
+          <PaginationItem key={i}>
+            <PaginationLink
+              isActive={currentPage === i}
+              onClick={() => handlePageChange(i)}
+              className="cursor-pointer"
+            >
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        )
+      }
+
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          pages.push(
+            <PaginationItem key="ellipsis-end">
+              <PaginationEllipsis />
+            </PaginationItem>
+          )
+        }
+        pages.push(
+          <PaginationItem key={totalPages}>
+            <PaginationLink
+              isActive={false}
+              onClick={() => handlePageChange(totalPages)}
+              className="cursor-pointer"
+            >
+              {totalPages}
+            </PaginationLink>
+          </PaginationItem>
+        )
+      }
+    }
+
+    return pages
+  }
+
+  const handleCreateClient = async () => {
     if (!formData.name || !formData.email) {
-      alert('Please fill in all required fields')
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Missing information',
+        text: 'Please fill in all required fields.',
+      })
       return
     }
 
@@ -64,6 +176,11 @@ export default function ServiceTypePage() {
     setClients([...clients, newClient])
     setFormData({ name: '', email: '', phone: '', status: 'active' as 'active' | 'inactive' | 'pending', machines: 0 })
     setShowCreateForm(false)
+    await Swal.fire({
+      icon: 'success',
+      title: 'Client created',
+      text: `${newClient.name} was added successfully.`,
+    })
   }
 
   const handleEditClient = (client: Client) => {
@@ -92,16 +209,42 @@ export default function ServiceTypePage() {
     setShowEditForm(false)
   }
 
-  const handleDeleteClient = (id: string) => {
-    if (confirm('Are you sure you want to delete this client?')) {
+  const handleDeleteClient = async (id: string) => {
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: 'Delete client?',
+      text: 'This action cannot be undone.',
+      showCancelButton: true,
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel',
+    })
+    if (result.isConfirmed) {
       setClients(clients.filter(client => client.id !== id))
+      await Swal.fire({
+        icon: 'success',
+        title: 'Client deleted',
+        text: 'The client was removed successfully.',
+      })
     }
   }
 
-  const handleGetClientById = (id: string) => {
+  const handleGetClientById = async (id: string) => {
     const client = clients.find(c => c.id === id)
     if (client) {
-      alert(`Client Details:\n\nName: ${client.name}\nEmail: ${client.email}\nPhone: ${client.phone}\nStatus: ${client.status}\nMachines: ${client.machines}\nJoin Date: ${client.joinDate}`)
+      await Swal.fire({
+        icon: 'info',
+        title: 'Client details',
+        html: `
+          <div style="text-align:left">
+            <div><strong>Name:</strong> ${client.name}</div>
+            <div><strong>Email:</strong> ${client.email}</div>
+            <div><strong>Phone:</strong> ${client.phone || '-'}</div>
+            <div><strong>Status:</strong> ${client.status}</div>
+            <div><strong>Machines:</strong> ${client.machines}</div>
+            <div><strong>Join Date:</strong> ${client.joinDate}</div>
+          </div>
+        `,
+      })
     }
   }
 
@@ -255,17 +398,23 @@ export default function ServiceTypePage() {
           </Card>
         )}
 
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4">
+        {/* Search and Controls */}
+        <div className="flex flex-col md:flex-row gap-4 items-center">
           <Input
             placeholder="Search by client name or email..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value)
+              setCurrentPage(1)
+            }}
             className="flex-1"
           />
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive' | 'pending')}
+            onChange={(e) => {
+              setFilterStatus(e.target.value as 'all' | 'active' | 'inactive' | 'pending')
+              setCurrentPage(1)
+            }}
             className="px-4 py-2 bg-input border border-border rounded-md text-foreground text-sm"
           >
             <option value="all">All Status</option>
@@ -273,8 +422,24 @@ export default function ServiceTypePage() {
             <option value="inactive">Inactive</option>
             <option value="pending">Pending</option>
           </select>
-          <div className="text-sm text-muted-foreground py-2">
-            Total Clients: {filteredClients.length} / {clients.length}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              Total: {filteredClients.length} / {clients.length}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Per page:</span>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -294,8 +459,8 @@ export default function ServiceTypePage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredClients.length > 0 ? (
-                  filteredClients.map((client) => (
+                {currentClients.length > 0 ? (
+                  currentClients.map((client) => (
                     <tr key={client.id} className="border-b border-border hover:bg-card/50 transition-colors">
                       <td className="px-6 py-4 font-medium text-foreground">{client.name}</td>
                       <td className="px-6 py-4 text-muted-foreground text-xs">{client.email}</td>
@@ -340,7 +505,7 @@ export default function ServiceTypePage() {
                 ) : (
                   <tr>
                     <td colSpan={7} className="px-6 py-8 text-center text-muted-foreground">
-                      No clients found
+                      {searchTerm || filterStatus !== 'all' ? 'No matching clients found' : 'No clients found'}
                     </td>
                   </tr>
                 )}
@@ -348,6 +513,34 @@ export default function ServiceTypePage() {
             </table>
           </div>
         </Card>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} results
+            </div>
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                
+                {renderPageNumbers()}
+                
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
     </div>
   )

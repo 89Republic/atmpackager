@@ -1,8 +1,8 @@
-const API_BASE_URL = 'http://192.168.1.78:8080'
+const API_BASE_URL = 'http://10.203.14.33:8182/mapper/api/v1'
 
 export async function GET() {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/clients`, {
+    const res = await fetch(`${API_BASE_URL}/clients`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    const res = await fetch(`${API_BASE_URL}/api/v1/clients`, {
+    const res = await fetch(`${API_BASE_URL}/clients`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -64,7 +64,7 @@ export async function PUT(request: Request) {
   try {
     const body = await request.json()
 
-    const res = await fetch(`${API_BASE_URL}/api/v1/clients`, {
+    const res = await fetch(`${API_BASE_URL}/clients`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

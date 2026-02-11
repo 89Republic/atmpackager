@@ -1,8 +1,8 @@
-const API_BASE_URL = 'http://192.168.1.78:8080'
+const API_BASE_URL = 'http://10.203.14.33:8182/mapper/api/v1'
 
 export async function GET() {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/v1/clients/active`, {
+    const res = await fetch(`${API_BASE_URL}/clients/active`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

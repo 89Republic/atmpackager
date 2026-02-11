@@ -1,28 +1,36 @@
 const API_BASE_URL = 'http://10.203.14.33:8182/mapper/api/v1'
 
-export async function GET(
+export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ clientId: string }> }
+  { params }: { params: Promise<{ mappingId: string }> }
 ) {
   try {
     const resolvedParams = await params
-    const clientId = resolvedParams.clientId?.trim()
-    if (!clientId || !/^\d+$/.test(clientId)) {
+    const mappingId = resolvedParams.mappingId?.trim()
+    if (!mappingId || !/^\d+$/.test(mappingId)) {
       return new Response(
-        JSON.stringify({ success: false, message: 'Invalid clientId' }),
+        JSON.stringify({ success: false, message: 'Invalid mappingId' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       )
     }
 
-    const res = await fetch(`${API_BASE_URL}/mappings/client/${clientId}`, {
-      method: 'GET',
+    const res = await fetch(`${API_BASE_URL}/mappings/${mappingId}`, {
+      method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
       },
       cache: 'no-store',
     })
 
-    const data = await res.json()
+    const text = await res.text()
+    let data: unknown = null
+    if (text) {
+      try {
+        data = JSON.parse(text)
+      } catch {
+        data = { success: res.ok, message: text }
+      }
+    }
 
     return new Response(JSON.stringify(data), {
       status: res.status,

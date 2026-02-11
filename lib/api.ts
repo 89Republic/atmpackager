@@ -119,4 +119,33 @@ export const clientsApi = {
 
     return result.data
   },
+  async remove(clientId: number): Promise<void> {
+    if (!clientId) {
+      throw new Error('clientId is required to delete a client')
+    }
+
+    const response = await fetch(`${API_BASE_URL}/clients/${clientId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    let result: ApiResponse<null> | null = null
+
+    try {
+      result = await response.json()
+    } catch {
+      result = null
+    }
+
+    if (!response.ok) {
+      const message = result?.message || `HTTP error! status: ${response.status}`
+      throw new Error(message)
+    }
+
+    if (result && !result.success) {
+      throw new Error(result.message || 'Failed to delete client')
+    }
+  },
 }

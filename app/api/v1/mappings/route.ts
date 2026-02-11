@@ -1,28 +1,36 @@
 const API_BASE_URL = 'http://10.203.14.33:8182/mapper/api/v1'
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ clientId: string }> }
-) {
-  try {
-    const resolvedParams = await params
-    const clientId = resolvedParams.clientId?.trim()
-    if (!clientId || !/^\d+$/.test(clientId)) {
-      return new Response(
-        JSON.stringify({ success: false, message: 'Invalid clientId' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      )
-    }
+type MappingCreatePayload = {
+  clientId: number
+  isoRecId: number
+  clientFieldNo: number
+  direction: string
+  transformation?: string
+  defaultValue?: string
+}
 
-    const res = await fetch(`${API_BASE_URL}/mappings/client/${clientId}`, {
-      method: 'GET',
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as MappingCreatePayload
+
+    const res = await fetch(`${API_BASE_URL}/mappings`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify(body),
       cache: 'no-store',
     })
 
-    const data = await res.json()
+    const text = await res.text()
+    let data: unknown = null
+    if (text) {
+      try {
+        data = JSON.parse(text)
+      } catch {
+        data = { success: res.ok, message: text }
+      }
+    }
 
     return new Response(JSON.stringify(data), {
       status: res.status,

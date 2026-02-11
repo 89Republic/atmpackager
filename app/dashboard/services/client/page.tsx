@@ -6,8 +6,19 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { clientsApi, type Client } from '@/lib/api'
+import Swal from 'sweetalert2'
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationPrevious, 
+  PaginationNext,
+  PaginationEllipsis 
+} from '@/components/ui/pagination'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-type ClientForm = Client & { clientId: string }
+type ClientForm = Omit<Client, 'clientId'> & { clientId: string }
 
 export default function ClientServicesPage() {
   const [clients, setClients] = useState<Client[]>([])
@@ -19,6 +30,10 @@ export default function ClientServicesPage() {
   const [showEditForm, setShowEditForm] = useState(false)
   const [editingClientName, setEditingClientName] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   const [formData, setFormData] = useState<ClientForm>({
     clientId: '',
@@ -68,6 +83,109 @@ export default function ClientServicesPage() {
     return matchesSearch && matchesStatus
   })
 
+  // Pagination calculations
+  const totalItems = filteredClients.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentClients = filteredClients.slice(startIndex, endIndex)
+
+  // Reset to first page when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, statusFilter])
+
+  // Reset to first page when items per page changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const renderPageNumbers = () => {
+    const pages = []
+    const maxVisiblePages = 5
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(
+          <PaginationItem key={i}>
+            <PaginationLink
+              isActive={currentPage === i}
+              onClick={() => handlePageChange(i)}
+              className="cursor-pointer"
+            >
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        )
+      }
+    } else {
+      const startPage = Math.max(1, currentPage - 2)
+      const endPage = Math.min(totalPages, currentPage + 2)
+
+      if (startPage > 1) {
+        pages.push(
+          <PaginationItem key={1}>
+            <PaginationLink
+              isActive={false}
+              onClick={() => handlePageChange(1)}
+              className="cursor-pointer"
+            >
+              1
+            </PaginationLink>
+          </PaginationItem>
+        )
+        if (startPage > 2) {
+          pages.push(
+            <PaginationItem key="ellipsis-start">
+              <PaginationEllipsis />
+            </PaginationItem>
+          )
+        }
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(
+          <PaginationItem key={i}>
+            <PaginationLink
+              isActive={currentPage === i}
+              onClick={() => handlePageChange(i)}
+              className="cursor-pointer"
+            >
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        )
+      }
+
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+          pages.push(
+            <PaginationItem key="ellipsis-end">
+              <PaginationEllipsis />
+            </PaginationItem>
+          )
+        }
+        pages.push(
+          <PaginationItem key={totalPages}>
+            <PaginationLink
+              isActive={false}
+              onClick={() => handlePageChange(totalPages)}
+              className="cursor-pointer"
+            >
+              {totalPages}
+            </PaginationLink>
+          </PaginationItem>
+        )
+      }
+    }
+
+    return pages
+  }
+
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'y':
@@ -98,11 +216,19 @@ export default function ClientServicesPage() {
 
   const handleCreateClient = async () => {
     if (!formData.clientId || !/^[0-9]+$/.test(formData.clientId)) {
-      alert('Please provide a valid client ID')
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Invalid client ID',
+        text: 'Please provide a valid client ID.',
+      })
       return
     }
     if (!formData.clientName || !formData.isoVersion || !formData.encoding || !formData.bitmapType) {
-      alert('Please fill in all required fields')
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Missing information',
+        text: 'Please fill in all required fields.',
+      })
       return
     }
 
@@ -121,8 +247,19 @@ export default function ClientServicesPage() {
       setShowCreateForm(false)
       setFormData({ clientId: '', clientName: '', isoVersion: '', encoding: '', bitmapType: '', active: 'Y' })
       await fetchClients()
+      await Swal.fire({
+        icon: 'success',
+        title: 'Client created',
+        text: `${payload.clientName} was added successfully.`,
+      })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create client')
+      const message = err instanceof Error ? err.message : 'Failed to create client'
+      setError(message)
+      await Swal.fire({
+        icon: 'error',
+        title: 'Create failed',
+        text: message,
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -146,7 +283,11 @@ export default function ClientServicesPage() {
   const handleUpdateClient = async () => {
     if (!editingClientName) return
     if (!formData.clientId || !/^[0-9]+$/.test(formData.clientId)) {
-      alert('Please provide a valid client ID')
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Invalid client ID',
+        text: 'Please provide a valid client ID.',
+      })
       return
     }
 
@@ -166,8 +307,63 @@ export default function ClientServicesPage() {
       setEditingClientName(null)
       setFormData({ clientId: '', clientName: '', isoVersion: '', encoding: '', bitmapType: '', active: 'Y' })
       await fetchClients()
+      await Swal.fire({
+        icon: 'success',
+        title: 'Client updated',
+        text: `${payload.clientName} was updated successfully.`,
+      })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update client')
+      const message = err instanceof Error ? err.message : 'Failed to update client'
+      setError(message)
+      await Swal.fire({
+        icon: 'error',
+        title: 'Update failed',
+        text: message,
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteClient = async (client: Client) => {
+    if (!client.clientId) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Missing client ID',
+        text: 'This client record has no ID and cannot be deleted.',
+      })
+      return
+    }
+
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: 'Delete client?',
+      text: `${client.clientName} will be removed permanently.`,
+      showCancelButton: true,
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel',
+    })
+
+    if (!result.isConfirmed) return
+
+    try {
+      setIsSubmitting(true)
+      setError(null)
+      await clientsApi.remove(client.clientId)
+      await fetchClients()
+      await Swal.fire({
+        icon: 'success',
+        title: 'Client deleted',
+        text: `${client.clientName} was deleted successfully.`,
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete client'
+      setError(message)
+      await Swal.fire({
+        icon: 'error',
+        title: 'Delete failed',
+        text: message,
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -284,8 +480,8 @@ export default function ClientServicesPage() {
           </Card>
         )}
 
-        {/* Search */}
-        <div className="flex flex-col md:flex-row gap-4">
+        {/* Search and Controls */}
+        <div className="flex flex-col md:flex-row gap-4 items-center">
           <Input
             placeholder="Search by client name, bitmap type, encoding, or ISO version..."
             value={searchTerm}
@@ -301,8 +497,24 @@ export default function ClientServicesPage() {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          <div className="text-sm text-muted-foreground py-2">
-            {loading ? 'Loading clients...' : `Total Clients: ${filteredClients.length} / ${clients.length}`}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              {loading ? 'Loading clients...' : `Total: ${filteredClients.length} / ${clients.length}`}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Per page:</span>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -337,8 +549,8 @@ export default function ClientServicesPage() {
                       <td className="px-6 py-4"><Skeleton className="h-5 w-20 bg-muted/60" /></td>
                     </tr>
                   ))
-                ) : filteredClients.length > 0 ? (
-                  filteredClients.map((client, index) => (
+                ) : currentClients.length > 0 ? (
+                  currentClients.map((client, index) => (
                     <tr key={index} className="border-b border-border hover:bg-card/50 transition-colors">
                       <td className="px-6 py-4 font-medium text-foreground">{client.clientName}</td>
                       <td className="px-6 py-4 text-muted-foreground text-xs">{client.bitmapType}</td>
@@ -350,21 +562,33 @@ export default function ClientServicesPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditClient(client)}
-                          className="bg-transparent text-xs"
-                        >
-                          Edit
-                        </Button>
+                        <div className="flex gap-2 justify-center">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditClient(client)}
+                            className="bg-transparent text-xs"
+                            disabled={isSubmitting}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteClient(client)}
+                            className="bg-transparent text-xs text-destructive hover:bg-destructive/10"
+                            disabled={isSubmitting}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                      No clients found
+                      {loading ? 'Loading clients...' : (searchTerm || statusFilter !== 'all' ? 'No matching clients found' : 'No clients found')}
                     </td>
                   </tr>
                 )}
@@ -372,6 +596,34 @@ export default function ClientServicesPage() {
             </table>
           </div>
         </Card>
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} results
+            </div>
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                
+                {renderPageNumbers()}
+                
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
     </div>
   )
