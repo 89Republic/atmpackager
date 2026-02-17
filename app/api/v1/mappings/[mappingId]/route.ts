@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://10.203.14.33:8182/mapper1/api/v1'
+import { SERVER_API_BASE_URL } from '@/lib/server-api'
 
 export async function DELETE(
   _request: Request,
@@ -14,7 +14,7 @@ export async function DELETE(
       )
     }
 
-    const res = await fetch(`${API_BASE_URL}/mappings/${mappingId}`, {
+    const res = await fetch(`${SERVER_API_BASE_URL}/mappings/${mappingId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

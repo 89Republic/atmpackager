@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://10.203.14.33:8182/mapper1/api/v1'
+import { SERVER_API_BASE_URL } from '@/lib/server-api'
 
 type MappingCreatePayload = {
   clientId: number
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as MappingCreatePayload
 
-    const res = await fetch(`${API_BASE_URL}/mappings`, {
+    const res = await fetch(`${SERVER_API_BASE_URL}/mappings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

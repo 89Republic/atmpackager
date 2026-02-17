@@ -1,5 +1,5 @@
-// Use internal Next.js API route to avoid CORS
-const API_BASE_URL = '/api/v1'
+const rawApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1'
+const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '')
 
 export interface Client {
   clientId?: number

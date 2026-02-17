@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://10.203.14.33:8182/mapper1/api/v1'
+import { SERVER_API_BASE_URL } from '@/lib/server-api'
 
 export async function PUT(
   request: Request,
@@ -17,7 +17,7 @@ export async function PUT(
 
     const body = await request.json()
 
-    const res = await fetch(`${API_BASE_URL}/clients/${clientId}`, {
+    const res = await fetch(`${SERVER_API_BASE_URL}/clients/${clientId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ export async function DELETE(
       )
     }
 
-    const res = await fetch(`${API_BASE_URL}/clients/${clientId}`, {
+    const res = await fetch(`${SERVER_API_BASE_URL}/clients/${clientId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
