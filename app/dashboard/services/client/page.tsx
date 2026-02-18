@@ -31,6 +31,7 @@ interface StandardField {
 }
 
 interface StandardEditForm {
+  clientId: string
   fieldLength: string
   fieldName: string
   className: string
@@ -54,6 +55,7 @@ export default function ClientServicesPage() {
   const [uploadedXmlFileName, setUploadedXmlFileName] = useState('')
   const [editingStandardRecId, setEditingStandardRecId] = useState<number | null>(null)
   const [standardEditForm, setStandardEditForm] = useState<StandardEditForm>({
+    clientId: '',
     fieldLength: '',
     fieldName: '',
     className: '',
@@ -434,6 +436,7 @@ export default function ClientServicesPage() {
   const handleEditStandard = (standard: StandardField) => {
     setEditingStandardRecId(standard.recId)
     setStandardEditForm({
+      clientId: String(standard.fieldId),
       fieldLength: String(standard.fieldLength),
       fieldName: standard.fieldName,
       className: standard.className,
@@ -443,6 +446,7 @@ export default function ClientServicesPage() {
   const handleCancelStandardEdit = () => {
     setEditingStandardRecId(null)
     setStandardEditForm({
+      clientId: '',
       fieldLength: '',
       fieldName: '',
       className: '',
@@ -455,6 +459,15 @@ export default function ClientServicesPage() {
         icon: 'warning',
         title: 'Client ID required',
         text: 'Select a valid client before saving configuration.',
+      })
+      return
+    }
+
+    if (!standardEditForm.clientId || !/^\d+$/.test(standardEditForm.clientId)) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Invalid clientID',
+        text: 'clientID must be numeric.',
       })
       return
     }
@@ -725,18 +738,20 @@ export default function ClientServicesPage() {
                   <table className="w-full text-sm">
                     <thead className="bg-card/50 border-b border-border">
                       <tr>
-                        <th className="px-4 py-3 text-left font-semibold text-foreground">recId</th>
-                        <th className="px-4 py-3 text-left font-semibold text-foreground">fieldId</th>
-                        <th className="px-4 py-3 text-left font-semibold text-foreground">fieldLength</th>
-                        <th className="px-4 py-3 text-left font-semibold text-foreground">fieldName</th>
-                        <th className="px-4 py-3 text-left font-semibold text-foreground">className</th>
-                        <th className="px-4 py-3 text-center font-semibold text-foreground">Actions</th>
+                        <th className="px-4 py-3 text-left font-semibold text-foreground">RECID</th>
+                        <th className="px-4 py-3 text-left font-semibold text-foreground">ISOFIELD</th>
+                        <th className="px-4 py-3 text-left font-semibold text-foreground">CLIENTFIELD</th>
+                        <th className="px-4 py-3 text-left font-semibold text-foreground">FIELDLENGTH</th>
+                        <th className="px-4 py-3 text-left font-semibold text-foreground">FIELDNAME</th>
+                        <th className="px-4 py-3 text-left font-semibold text-foreground">CLASSNAME</th>
+                        <th className="px-4 py-3 text-center font-semibold text-foreground">ACTIONS</th>
                       </tr>
                     </thead>
                     <tbody>
                       {standardsLoading ? (
                         Array.from({ length: 5 }).map((_, index) => (
                           <tr key={`standards-skeleton-${index}`} className="border-b border-border">
+                            <td className="px-4 py-3"><Skeleton className="h-4 w-16 bg-muted/60" /></td>
                             <td className="px-4 py-3"><Skeleton className="h-4 w-16 bg-muted/60" /></td>
                             <td className="px-4 py-3"><Skeleton className="h-4 w-16 bg-muted/60" /></td>
                             <td className="px-4 py-3"><Skeleton className="h-4 w-20 bg-muted/60" /></td>
@@ -752,6 +767,18 @@ export default function ClientServicesPage() {
                             <tr key={standard.recId} className="border-b border-border hover:bg-card/50 transition-colors">
                               <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{standard.recId}</td>
                               <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{standard.fieldId}</td>
+                              <td className="px-4 py-3 text-foreground">
+                                {isEditing ? (
+                                  <Input
+                                    value={standardEditForm.clientId}
+                                    onChange={(e) => setStandardEditForm({ ...standardEditForm, clientId: e.target.value.replace(/\D/g, '') })}
+                                    className="h-8"
+                                    inputMode="numeric"
+                                  />
+                                ) : (
+                                  <span className="text-muted-foreground font-mono text-xs">{standard.fieldId}</span>
+                                )}
+                              </td>
                               <td className="px-4 py-3 text-foreground">
                                 {isEditing ? (
                                   <Input
@@ -826,7 +853,7 @@ export default function ClientServicesPage() {
                         })
                       ) : (
                         <tr>
-                          <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
+                          <td colSpan={7} className="px-6 py-8 text-center text-muted-foreground">
                             No standards found
                           </td>
                         </tr>
@@ -890,12 +917,12 @@ export default function ClientServicesPage() {
             <table className="w-full text-sm">
               <thead className="bg-card/50 border-b border-border">
                 <tr>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">Client Name</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">Bitmap Type</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">Encoding</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">ISO Version</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">Status</th>
-                  <th className="px-6 py-3 text-center font-semibold text-foreground">Actions</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">CLIENT NAME</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">BITMAP TYPE</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">ENCODING</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">ISO VERSION</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">STATUS</th>
+                  <th className="px-6 py-3 text-center font-semibold text-foreground">ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
@@ -911,21 +938,16 @@ export default function ClientServicesPage() {
                   ))
                 ) : currentClients.length > 0 ? (
                   currentClients.map((client, index) => (
-                    <tr key={index} className="border-b border-border hover:bg-card/50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-foreground">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (typeof client.clientId === 'number') {
-                              void handleOpenConfigurationModal(client.clientId)
-                            }
-                          }}
-                          className="text-left hover:underline disabled:opacity-50"
-                          disabled={typeof client.clientId !== 'number'}
-                        >
-                          {client.clientName}
-                        </button>
-                      </td>
+                    <tr
+                      key={index}
+                      className="border-b border-border hover:bg-muted/60 hover:shadow-[inset_0_0_0_1px_hsl(var(--border))] transition-all duration-150 cursor-pointer"
+                      onClick={() => {
+                        if (typeof client.clientId === 'number') {
+                          void handleOpenConfigurationModal(client.clientId)
+                        }
+                      }}
+                    >
+                      <td className="px-6 py-4 font-medium text-foreground">{client.clientName}</td>
                       <td className="px-6 py-4 text-muted-foreground text-xs">{client.bitmapType}</td>
                       <td className="px-6 py-4 text-muted-foreground text-xs">{client.encoding}</td>
                       <td className="px-6 py-4 text-muted-foreground text-xs">{client.isoVersion}</td>
@@ -939,7 +961,7 @@ export default function ClientServicesPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleEditClient(client)}
+                            onClick={(e) => { e.stopPropagation(); handleEditClient(client) }}
                             className="bg-transparent text-xs"
                             disabled={isSubmitting}
                           >
@@ -948,7 +970,7 @@ export default function ClientServicesPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleDeleteClient(client)}
+                            onClick={(e) => { e.stopPropagation(); handleDeleteClient(client) }}
                             className="bg-transparent text-xs text-destructive hover:bg-destructive/10"
                             disabled={isSubmitting}
                           >

@@ -237,11 +237,11 @@ export default function StandardServicesPage() {
             <table className="w-full text-sm transition-none">
               <thead className="bg-card/50 border-b border-border transition-none">
                 <tr>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">recId</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">fieldId</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">fieldLength</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">fieldName</th>
-                  <th className="px-6 py-3 text-left font-semibold text-foreground">className</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">RECID</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">FIELDID</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">FIELDLENGTH</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">FIELDNAME</th>
+                  <th className="px-6 py-3 text-left font-semibold text-foreground">CLASSNAME</th>
                 </tr>
               </thead>
               <tbody>
