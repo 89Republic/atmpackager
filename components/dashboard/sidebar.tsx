@@ -50,7 +50,7 @@ export function Sidebar() {
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <h1 className="text-lg font-bold text-sidebar-foreground truncate">ATM Pack</h1>
+            <h1 className="text-lg font-bold text-sidebar-foreground truncate">ATM Packager</h1>
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}

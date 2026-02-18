@@ -15,6 +15,7 @@ import {
   PaginationEllipsis 
 } from '@/components/ui/pagination'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { RefreshCw } from 'lucide-react'
 
 interface StandardField {
   recId: number
@@ -66,9 +67,10 @@ export default function StandardServicesPage() {
 
   // Pagination calculations
   const totalItems = filteredServices.length
-  const totalPages = Math.ceil(totalItems / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
+  const effectiveItemsPerPage = itemsPerPage === 0 ? Math.max(totalItems, 1) : itemsPerPage
+  const totalPages = Math.ceil(totalItems / effectiveItemsPerPage)
+  const startIndex = (currentPage - 1) * effectiveItemsPerPage
+  const endIndex = startIndex + effectiveItemsPerPage
   const currentServices = filteredServices.slice(startIndex, endIndex)
 
   // Reset to first page when search changes
@@ -174,11 +176,19 @@ export default function StandardServicesPage() {
       <div className="space-y-6">
         <div className="flex justify-between items-start">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">Standard Services</h1>
+            <h1 className="text-3xl font-bold text-foreground">ISO Standards</h1>
             <p className="text-muted-foreground">Manage standard ATM services and APIs</p>
           </div>
-          <Button onClick={fetchStandards} variant="outline" className="bg-transparent">
-            Refresh
+          <Button
+            onClick={fetchStandards}
+            variant="outline"
+            size="icon"
+            className="bg-transparent"
+            disabled={isLoading}
+            aria-label="Refresh standards"
+            title="Refresh standards"
+          >
+            <RefreshCw className={isLoading ? 'animate-spin' : ''} />
           </Button>
         </div>
 
@@ -202,7 +212,10 @@ export default function StandardServicesPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">Per page:</span>
-              <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+              <Select
+                value={itemsPerPage === 0 ? 'all' : itemsPerPage.toString()}
+                onValueChange={(value) => setItemsPerPage(value === 'all' ? 0 : Number(value))}
+              >
                 <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
@@ -211,6 +224,7 @@ export default function StandardServicesPage() {
                   <SelectItem value="10">10</SelectItem>
                   <SelectItem value="20">20</SelectItem>
                   <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                 </SelectContent>
               </Select>
             </div>

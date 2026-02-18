@@ -5,13 +5,13 @@ import { Card } from '@/components/ui/card'
 
 const serviceTypes = [
   {
-    name: 'Standard',
+    name: 'ISO Standards',
     description: 'Manage standard ATM services and configurations',
     href: '/dashboard/services/standard',
     icon: '⚙️'
   },
   {
-    name: 'Client',
+    name: 'Client Config',
     description: 'Manage client-specific ATM services and accounts',
     href: '/dashboard/services/client',
     icon: '👥'
