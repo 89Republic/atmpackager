@@ -403,19 +403,66 @@ export default function ClientServicesPage() {
     }
   }
 
-  const fetchStandards = async () => {
+  const normalizeStandardRows = (payload: any): StandardField[] => {
+    const rawRows = Array.isArray(payload?.data?.mappings)
+      ? payload.data.mappings
+      : Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : []
+
+    return rawRows.map((row: any, index: number) => {
+      const iso = row?.isoStandardDefinition ?? {}
+      const client = row?.clientDefinition ?? {}
+
+      const recId =
+        Number(row?.recId) ||
+        Number(row?.isoRecId) ||
+        Number(iso?.isoFieldNo) ||
+        Number(row?.mappingId) ||
+        index + 1
+
+      const fieldId =
+        Number(row?.fieldId) ||
+        Number(iso?.isoFieldNo) ||
+        recId
+
+      const fieldLength =
+        Number(row?.fieldLength) ||
+        Number(iso?.length) ||
+        0
+
+      return {
+        recId,
+        fieldId,
+        fieldLength,
+        fieldName: row?.fieldName ?? iso?.isoFieldName ?? '',
+        className: row?.className ?? row?.isoClassName ?? '',
+      }
+    })
+  }
+
+  const fetchStandards = async (clientId?: string) => {
     try {
       setStandardsLoading(true)
       setStandardsError(null)
-      const res = await fetch('/api/v1/standards', { cache: 'no-store' })
+
+      const normalizedClientId = (clientId ?? '').trim()
+      const endpoint = /^\d+$/.test(normalizedClientId)
+        ? `/api/v1/mappings/client/${normalizedClientId}`
+        : '/api/v1/standards'
+
+      const res = await fetch(endpoint, { cache: 'no-store' })
       const payload = await res.json()
       if (!res.ok || payload?.success === false) {
-        const message = payload?.message || 'Failed to load standards'
+        const message = payload?.message || 'Failed to load client standards'
         throw new Error(message)
       }
-      setStandards(Array.isArray(payload?.data) ? payload.data : [])
+
+      setStandards(normalizeStandardRows(payload))
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load standards'
+      const message = err instanceof Error ? err.message : 'Failed to load client standards'
       setStandardsError(message)
       setStandards([])
     } finally {
@@ -424,19 +471,29 @@ export default function ClientServicesPage() {
   }
 
   const handleOpenConfigurationModal = async (clientId?: number) => {
+    const nextClientId = typeof clientId === 'number'
+      ? String(clientId)
+      : selectedConfigClientId
+
     if (typeof clientId === 'number') {
-      setSelectedConfigClientId(String(clientId))
+      setSelectedConfigClientId(nextClientId)
+      if (editingStandardRecId !== null) {
+        setStandardEditForm((prev) => ({ ...prev, clientId: nextClientId }))
+      }
     }
+
     setShowConfigModal(true)
-    if (standards.length === 0 && !standardsLoading) {
-      await fetchStandards()
-    }
+    await fetchStandards(nextClientId)
   }
 
   const handleEditStandard = (standard: StandardField) => {
+    const selectedClientId = /^\d+$/.test(selectedConfigClientId)
+      ? selectedConfigClientId
+      : String(standard.fieldId)
+
     setEditingStandardRecId(standard.recId)
     setStandardEditForm({
-      clientId: String(standard.fieldId),
+      clientId: selectedClientId,
       fieldLength: String(standard.fieldLength),
       fieldName: standard.fieldName,
       className: standard.className,
@@ -560,11 +617,12 @@ export default function ClientServicesPage() {
               setShowCreateForm(false)
               setShowEditForm(false)
               setEditingClientName(null)
+              setUploadedXmlFileName('')
               setFormData({ clientId: '', clientName: '', isoVersion: '', encoding: '', bitmapType: '', active: 'Y' })
             }
           }}
         >
-          <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-3xl lg:max-w-5xl">
+          <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-2xl lg:max-w-2xl">
             <DialogHeader>
               <DialogTitle>{showEditForm ? 'Edit Client' : 'Create New Client'}</DialogTitle>
               <DialogDescription>
@@ -573,7 +631,7 @@ export default function ClientServicesPage() {
             </DialogHeader>
 
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3 max-w-2xl">
                 <div>
                   <label className="text-sm font-medium text-foreground">Client ID *</label>
                   <Input
@@ -631,7 +689,15 @@ export default function ClientServicesPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-4">
+              <input
+                id="create-client-xml-upload"
+                type="file"
+                accept=".xml,application/xml,text/xml"
+                onChange={handleXmlFileChange}
+                className="hidden"
+              />
+
+              <div className="flex gap-2 pt-4 items-center">
                 <Button
                   onClick={showEditForm ? handleUpdateClient : handleCreateClient}
                   className="bg-primary hover:bg-primary/90"
@@ -644,6 +710,7 @@ export default function ClientServicesPage() {
                     setShowCreateForm(false)
                     setShowEditForm(false)
                     setEditingClientName(null)
+                    setUploadedXmlFileName('')
                     setFormData({ clientId: '', clientName: '', isoVersion: '', encoding: '', bitmapType: '', active: 'Y' })
                   }}
                   variant="outline"
@@ -651,6 +718,13 @@ export default function ClientServicesPage() {
                 >
                   Cancel
                 </Button>
+                {!showEditForm && (
+                  <label htmlFor="create-client-xml-upload">
+                    <Button type="button" variant="outline" className="bg-transparent" asChild>
+                      <span>Upload XML</span>
+                    </Button>
+                  </label>
+                )}
               </div>
             </div>
           </DialogContent>
@@ -669,9 +743,9 @@ export default function ClientServicesPage() {
           <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[95vw] lg:max-w-6xl h-[85vh] p-0 overflow-hidden">
             <div className="flex h-full min-h-0 flex-col">
             <DialogHeader className="px-6 pt-6">
-              <DialogTitle>Add Client Configuration</DialogTitle>
+              <DialogTitle>Update Client Configuration</DialogTitle>
               <DialogDescription>
-                Select a client, edit any standard, then save it to that client configuration.
+                Select a client, edit client field/field length, then update that client configuration.
               </DialogDescription>
             </DialogHeader>
 
@@ -681,7 +755,14 @@ export default function ClientServicesPage() {
                   <label className="text-sm font-medium text-foreground">Client ID *</label>
                   <select
                     value={selectedConfigClientId}
-                    onChange={(e) => setSelectedConfigClientId(e.target.value)}
+                    onChange={(e) => {
+                      const nextClientId = e.target.value
+                      setSelectedConfigClientId(nextClientId)
+                      if (editingStandardRecId !== null && /^\d+$/.test(nextClientId)) {
+                        setStandardEditForm((prev) => ({ ...prev, clientId: nextClientId }))
+                      }
+                      void fetchStandards(nextClientId)
+                    }}
                     className="w-full mt-1 px-3 py-2 bg-input border border-border rounded-md text-foreground text-sm"
                   >
                     <option value="">Select client</option>
@@ -695,35 +776,18 @@ export default function ClientServicesPage() {
                       ))}
                   </select>
                 </div>
-                <div className="md:col-span-2 flex flex-col gap-1 md:items-end">
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="client-config-xml-upload">
-                      <Button type="button" variant="outline" className="bg-transparent" asChild>
-                        <span>Upload XML</span>
-                      </Button>
-                    </label>
-                    <Button
-                      onClick={fetchStandards}
-                      variant="outline"
-                      size="icon"
-                      className="bg-transparent"
-                      disabled={standardsLoading}
-                      aria-label="Reload standards"
-                      title="Reload standards"
-                    >
-                      <RefreshCw className={standardsLoading ? 'animate-spin' : ''} />
-                    </Button>
-                  </div>
-                  <input
-                    id="client-config-xml-upload"
-                    type="file"
-                    accept=".xml,application/xml,text/xml"
-                    onChange={handleXmlFileChange}
-                    className="hidden"
-                  />
-                  {uploadedXmlFileName && (
-                    <span className="text-xs text-muted-foreground md:text-right">{uploadedXmlFileName}</span>
-                  )}
+                <div className="md:col-span-2 flex justify-end">
+                  <Button
+                    onClick={() => void fetchStandards(selectedConfigClientId)}
+                    variant="outline"
+                    size="icon"
+                    className="bg-transparent"
+                    disabled={standardsLoading}
+                    aria-label="Reload standards"
+                    title="Reload standards"
+                  >
+                    <RefreshCw className={standardsLoading ? 'animate-spin' : ''} />
+                  </Button>
                 </div>
               </div>
 
@@ -793,22 +857,14 @@ export default function ClientServicesPage() {
                               </td>
                               <td className="px-4 py-3 text-foreground">
                                 {isEditing ? (
-                                  <Input
-                                    value={standardEditForm.fieldName}
-                                    onChange={(e) => setStandardEditForm({ ...standardEditForm, fieldName: e.target.value })}
-                                    className="h-8"
-                                  />
+                                  <span className="text-muted-foreground text-xs">{standard.fieldName}</span>
                                 ) : (
                                   standard.fieldName
                                 )}
                               </td>
                               <td className="px-4 py-3 text-foreground">
                                 {isEditing ? (
-                                  <Input
-                                    value={standardEditForm.className}
-                                    onChange={(e) => setStandardEditForm({ ...standardEditForm, className: e.target.value })}
-                                    className="h-8"
-                                  />
+                                  <span className="text-muted-foreground text-xs">{standard.className}</span>
                                 ) : (
                                   standard.className
                                 )}
@@ -823,7 +879,7 @@ export default function ClientServicesPage() {
                                         disabled={isSavingStandardConfig}
                                         className="text-xs"
                                       >
-                                        Save
+                                        Update
                                       </Button>
                                       <Button
                                         size="sm"

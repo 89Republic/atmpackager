@@ -5,12 +5,11 @@ import ClientsTable from '@/components/dashboard/clients-table'
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to your ATM monitoring dashboard</p>
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">Real-time overview of your ATM infrastructure</p>
       </div>
-
       <MetricsCards />
       <ClientsTable />
     </div>

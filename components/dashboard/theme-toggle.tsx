@@ -24,10 +24,10 @@ export function ThemeToggle() {
 
   return (
     <Button
-      variant="outline"
+      variant="ghost"
       size="icon"
       onClick={toggleTheme}
-      className="rounded-full bg-transparent"
+      className="rounded-xl bg-transparent hover:bg-muted/60 w-8 h-8"
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {isDark ? (

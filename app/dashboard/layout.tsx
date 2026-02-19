@@ -23,15 +23,15 @@ export default function DashboardLayout({
   }, [router])
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
       <Sidebar />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <Header />
         <main className="flex-1 overflow-auto">
-          <div className="p-8 space-y-8">
+          <div className="p-6 lg:p-8 space-y-6">
             {children}
           </div>
         </main>
